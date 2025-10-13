@@ -5,4 +5,6 @@ set(CMAKE_C_STANDARD 11)
 
 add_executable(ticketing3A
         client/main.c
-        server/main.c)
+        server/main.c
+        src/server.c
+        src/client.c)
