@@ -37,8 +37,45 @@ int connect_to_server()
     return 0;
 }
 
-void display_menu()
+void process_client_input()
 {
+    // lit les commandes du client et les traite
+    char command[256];
+    while (1)
+    {
+        printf("Entrez une commande (sendTicket -l | sendTicket -new | exit): ");
+        if (fgets(command, sizeof(command), stdin) == NULL)
+        {
+            printf("Erreur de lecture de la commande.\n");
+            continue;
+        }
+
+        command[strcspn(command, "\n")] = 0;
+
+        if (strcmp(command, "sendTicket") == 0)
+        {
+            printf("Options disponibles:\n");
+            printf("  sendTicket -l    : Lister vos tickets\n");
+            printf("  sendTicket -new  : Créer un nouveau ticket\n");
+        }
+        else if (strcmp(command, "sendTicket -l") == 0)
+        {
+            list_tickets();
+        }
+        else if (strcmp(command, "sendTicket -new") == 0)
+        {
+            create_ticket();
+        }
+        else if (strcmp(command, "exit") == 0)
+        {
+            printf("Déconnexion du serveur...\n");
+            break;
+        }
+        else
+        {
+            printf("Commande inconnue. Veuillez réessayer.\n");
+        }
+    }
 }
 
 // Créé un nouveau ticket
@@ -74,6 +111,8 @@ void list_tickets()
 {
     pthread_mutex_lock(&shared_mem->mutex);
     int found = 0;
+
+    // Affiche les tickets du client
     printf("Vos tickets:\n");
     for (int i = 0; i < shared_mem->ticket_count; i++)
     {
@@ -88,21 +127,13 @@ void list_tickets()
             found = 1;
         }
     }
+
+    // Aucun tickets trouvés
     if (!found)
     {
         printf("Aucun ticket trouvé.\n");
     }
     pthread_mutex_unlock(&shared_mem->mutex);
-}
-
-// Voir les détails d'un ticket
-void view_ticket()
-{
-}
-
-// Mets à jour le statut d'un ticket
-void update_ticket_status()
-{
 }
 
 int main()
