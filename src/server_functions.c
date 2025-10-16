@@ -143,6 +143,7 @@ int count_technician_tickets(int technician_id) {
 }
 
 void check_priority_tickets(void) {
+    // Vérifie les tickets ouverts et les marque comme prioritaires si le délai est dépassé
     time_t now = time(NULL);
     int priority_count = 0;
     
@@ -150,16 +151,14 @@ void check_priority_tickets(void) {
     
     for (int i = 0; i < shared_mem->ticket_count; i++) {
         if (shared_mem->tickets[i].status == TICKET_OPEN) {
-            double elapsed = difftime(now, shared_mem->tickets[i].created_at);
+            double elapsed = difftime(now, shared_mem->tickets[i].created_at); // Temps écoulé depuis la création du ticket
             
             if (elapsed >= PRIORITY_DELAY && !shared_mem->tickets[i].is_priority) {
                 shared_mem->tickets[i].is_priority = 1;
                 priority_count++;
                 
                 char msg[256];
-                snprintf(msg, sizeof(msg), 
-                        "Ticket #%d devenu PRIORITAIRE (cree il y a %.0f heures)",
-                        shared_mem->tickets[i].id, elapsed / 3600);
+                snprintf(msg, sizeof(msg), "Ticket #%d devenu PRIORITAIRE (cree il y a %.0f heures)",shared_mem->tickets[i].id, elapsed / 3600); // Création d'un message pour indiquer que 
                 log_event(msg);
             }
         }
@@ -169,8 +168,7 @@ void check_priority_tickets(void) {
     
     if (priority_count > 0) {
         char msg[128];
-        snprintf(msg, sizeof(msg), "%d ticket(s) prioritaire(s) en attente", 
-                priority_count);
+        snprintf(msg, sizeof(msg), "%d ticket(s) prioritaire(s) en attente", priority_count);
         log_event(msg);
     }
 }
@@ -181,7 +179,7 @@ void cleanup_closed_tickets(void) {
     // Compter les tickets actifs
     int active_count = count_active_tickets();
     
-    // Si on a moins de 5 tickets actifs, pas besoin de nettoyer
+    // Si on a moins de MAX_TICKETS tickets actifs, pas besoin de nettoyer
     if (active_count < MAX_TICKETS) {
         pthread_mutex_unlock(&shared_mem->mutex);
         return;
