@@ -86,6 +86,7 @@ int init_shared_memory(void) {
     memset(shared_mem->tickets, 0, sizeof(shared_mem->tickets)); // Dans la mémoire partagée, on initialise tous les tickets de notre tableau ticket à 0
     shared_mem->ticket_count = 0;
     shared_mem->next_id = 1;
+    shared_mem->next_client_id = 1;  // Initialiser le compteur de clients
     
     log_event("Serveur de ticketing initialise");
     printf("   Nom de la memoire partagee: %s\n", SHM_NAME);

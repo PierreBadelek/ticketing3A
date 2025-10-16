@@ -33,6 +33,7 @@ typedef struct {
     Ticket tickets[MAX_TICKETS];
     int ticket_count;
     int next_id;
+    int next_client_id; 
     pthread_mutex_t mutex;
 } SharedMemory;
 

@@ -13,12 +13,12 @@ docker pull anthorld/projet-systeme:latest
 
 Lancer le serveur sur un autre terminal:
 ```bash
-docker run --rm -it --name serveur --ipc=host anthorld/projet-systeme:latest
+docker run --rm -it --name serveur --ipc=shareable anthorld/projet-systeme:latest
 ```
 
 Lancer le client sur un terminal:
 ```bash
-docker run --rm -it --name client --ipc=host anthorld/projet-systeme:latest ./client
+docker run --rm -it --name client --ipc=container:serveur anthorld/projet-systeme:latest ./client
 ```
 
 

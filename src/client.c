@@ -35,7 +35,10 @@ int connect_to_server()
         return -1;
     }
 
-    client_id = getpid();
+    // Demander un ID au serveur de manière thread-safe
+    pthread_mutex_lock(&shared_mem->mutex);
+    client_id = shared_mem->next_client_id++;
+    pthread_mutex_unlock(&shared_mem->mutex);
 
     printf("Connecté au serveur avec Client ID: %d\n", client_id);
     return 0;
