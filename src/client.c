@@ -64,7 +64,26 @@ void process_client_input()
         }
         else if (strcmp(command, "sendTicket -new") == 0)
         {
-            create_ticket();
+            char title[100];
+            char description[500];
+
+            printf("Entrez le titre du ticket: ");
+            if (fgets(title, sizeof(title), stdin) == NULL)
+            {
+                printf("Erreur de lecture du titre.\n");
+                continue;
+            }
+            title[strcspn(title, "\n")] = 0;
+
+            printf("Entrez la description du ticket: ");
+            if (fgets(description, sizeof(description), stdin) == NULL)
+            {
+                printf("Erreur de lecture de la description.\n");
+                continue;
+            }
+            description[strcspn(description, "\n")] = 0;
+
+            create_ticket(title, description);
         }
         else if (strcmp(command, "exit") == 0)
         {
@@ -79,7 +98,7 @@ void process_client_input()
 }
 
 // Créé un nouveau ticket
-void create_ticket()
+void create_ticket(const char *titre, const char *description)
 {
     // Vérifie si le nombre maximum de tickets est atteint
     pthread_mutex_lock(&shared_mem->mutex);
@@ -95,6 +114,12 @@ void create_ticket()
     new_ticket->id = shared_mem->next_id++;
     new_ticket->status = TICKET_IN_PROGRESS;
     new_ticket->client_id = client_id;
+    
+    strncpy(new_ticket->title, titre, sizeof(new_ticket->title) - 1);
+    new_ticket->title[sizeof(new_ticket->title) - 1] = '\0';
+    strncpy(new_ticket->description, description, sizeof(new_ticket->description) - 1);
+    new_ticket->description[sizeof(new_ticket->description) - 1] = '\0';
+    
     new_ticket->technician_id = -1;
     new_ticket->is_priority = 0;
     new_ticket->created_at = time(NULL);
