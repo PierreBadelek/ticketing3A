@@ -112,7 +112,7 @@ void create_ticket(const char *titre, const char *description)
     // Création du ticket
     Ticket *new_ticket = &shared_mem->tickets[shared_mem->ticket_count];
     new_ticket->id = shared_mem->next_id++;
-    new_ticket->status = TICKET_IN_PROGRESS;
+    new_ticket->status = TICKET_OPEN;
     new_ticket->client_id = client_id;
     
     strncpy(new_ticket->title, titre, sizeof(new_ticket->title) - 1);
