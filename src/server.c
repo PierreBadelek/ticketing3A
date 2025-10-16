@@ -1,59 +1,58 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <signal.h>
+#include <pthread.h>
 #include <unistd.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include "ticketing.h"
+#include "server_functions.h"
 
-#define SHM_NAME "/ticketing_shm"
-
-SharedMemory *shared_mem;
-
-// Fonction d'initialisation de la mémoire partagée
-int init_shared_memory() {
-    int shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666);
-    if (shm_fd == -1) {
-        perror("shm_open");
-        return -1;
-    }
-    
-    if (ftruncate(shm_fd, sizeof(SharedMemory)) == -1) {
-        perror("ftruncate");
-        return -1;
-    }
-    
-    shared_mem = mmap(NULL, sizeof(SharedMemory), 
-                      PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-    
-    if (shared_mem == MAP_FAILED) {
-        perror("mmap");
-        return -1;
-    }
-    
-    // Initialisation du mutex
-    pthread_mutexattr_t attr;
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
-    pthread_mutex_init(&shared_mem->mutex, &attr);
-    
-    shared_mem->ticket_count = 0;
-    
-    printf("Serveur de ticketing initialisé\n");
-    return 0;
-}
+SharedMemory *shared_mem = NULL;
+int shm_fd = -1;
 
 int main() {
+    pthread_t monitor_thread;
+
+    printf("\n");
+    printf("===============================================================\n");
+    printf("           SERVEUR DE TICKETING - DEMARRAGE\n");
+    printf("===============================================================\n\n");
+
+    // Installer les gestionnaires de signaux
+    signal(SIGINT, cleanup_server);
+    signal(SIGTERM, cleanup_server);
+
+    // Initialiser la mémoire partagée
     if (init_shared_memory() == -1) {
+        fprintf(stderr, "Erreur d'initialisation du serveur\n");
         return 1;
     }
-    
-    printf("Serveur en attente de connexions...\n");
-    
-    // Le serveur reste actif
+
+    log_event("Serveur de ticketing demarre");
+    log_event("En attente de connexions clients...");
+
+    printf("\n");
+    printf("Commandes:\n");
+    printf("   - Appuyez sur ENTREE pour voir le statut\n");
+    printf("   - Ctrl+C pour arreter le serveur\n");
+    printf("\n");
+    printf("===============================================================\n\n");
+
+    // Lancer le thread de surveillance
+    if (pthread_create(&monitor_thread, NULL, monitoring_thread, NULL) != 0) {
+        perror("pthread_create");
+        cleanup_server(0);
+        return 1;
+    }
+
+    // Détacher le thread (il tournera indépendamment)
+    pthread_detach(monitor_thread);
+
+    // Boucle principale : affichage du statut sur demande
+    char input[10];
     while (1) {
-        sleep(1);
+        if (fgets(input, sizeof(input), stdin) != NULL) {
+            display_server_status();
+        }
     }
     
     return 0;

@@ -1,10 +1,18 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 3.10)
 project(ticketing3A C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(ticketing3A
-        client/main.c
-        server/main.c
+# Dossier des headers
+include_directories(include)
+
+# Serveur
+add_executable(server
         src/server.c
-        src/client.c)
+        src/server_functions.c
+        src/client.c
+        src/testenvoiticketserveur.c
+)
+
+# Librairies nécessaires
+target_link_libraries(server pthread rt)

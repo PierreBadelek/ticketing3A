@@ -8,6 +8,7 @@
 #define MAX_DESCRIPTION 256
 #define MAX_TITLE 100
 #define PRIORITY_DELAY 86400  // 24h en secondes
+#define SHM_NAME "/ticketing_shm"
 
 typedef enum {
     TICKET_OPEN,
@@ -30,7 +31,12 @@ typedef struct {
 typedef struct {
     Ticket tickets[MAX_TICKETS];
     int ticket_count;
+    int next_id;
     pthread_mutex_t mutex;
 } SharedMemory;
+
+// Fonctions utilitaires pour affichage 
+const char* status_to_string(TicketStatus status);
+const char* priority_to_string(int is_priority);
 
 #endif
