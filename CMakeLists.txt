@@ -17,6 +17,11 @@ add_executable(client
         src/client.c
 )
 
+# Technicien
+add_executable(technicien
+        src/technicien.c
+)
+
 # Librairies nécessaires
 target_link_libraries(server pthread rt)
 target_link_libraries(client pthread rt)
