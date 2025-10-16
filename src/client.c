@@ -7,8 +7,6 @@
 #include <fcntl.h>
 #include "ticketing.h"
 
-#define SHM_NAME "/ticketing_shm"
-
 SharedMemory *shared_mem;
 int client_id;
 
