@@ -10,6 +10,12 @@
 SharedMemory *shared_mem;
 int client_id;
 
+// Déclarations des fonctions
+int connect_to_server();
+void process_client_input();
+void create_ticket(const char *titre, const char *description);
+void list_tickets();
+
 int connect_to_server()
 {
     int shm_fd = shm_open(SHM_NAME, O_RDWR, 0666);
@@ -112,12 +118,12 @@ void create_ticket(const char *titre, const char *description)
     new_ticket->id = shared_mem->next_id++;
     new_ticket->status = TICKET_OPEN;
     new_ticket->client_id = client_id;
-    
+
     strncpy(new_ticket->title, titre, sizeof(new_ticket->title) - 1);
     new_ticket->title[sizeof(new_ticket->title) - 1] = '\0';
     strncpy(new_ticket->description, description, sizeof(new_ticket->description) - 1);
     new_ticket->description[sizeof(new_ticket->description) - 1] = '\0';
-    
+
     new_ticket->technician_id = -1;
     new_ticket->is_priority = 0;
     new_ticket->created_at = time(NULL);
