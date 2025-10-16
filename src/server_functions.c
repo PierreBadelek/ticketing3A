@@ -17,6 +17,7 @@ extern int shm_fd;
 // ============================================================================
 
 const char* status_to_string(TicketStatus status) {
+    // Convertit le statut d'un ticket en chaîne lisible
     switch(status) {
         case TICKET_OPEN: return "OUVERT";
         case TICKET_IN_PROGRESS: return "EN COURS";
@@ -25,11 +26,17 @@ const char* status_to_string(TicketStatus status) {
     }
 }
 
-const char* priority_to_string(int is_priority) {
-    return is_priority ? "PRIORITAIRE" : "NORMAL";
+const char* priority_to_string(int is_priority) { 
+    // Convertit le statut de priorité en chaîne lisible
+    if (is_priority) {
+        return "PRIORITAIRE";
+    } else {
+        return "NORMAL";
+    }
 }
 
 void log_event(const char *message) {
+    // affiche l'heure et la date de l'événement suivi du message
     time_t now = time(NULL);
     char time_str[26];
     ctime_r(&now, time_str);
@@ -43,63 +50,66 @@ void log_event(const char *message) {
 
 int init_shared_memory(void) {
     // Nettoyer une éventuelle mémoire partagée existante
-    shm_unlink(SHM_NAME);
+    shm_unlink(SHM_NAME); // On supprime l'ancienne mémoire partagée si elle existe
+    // Shm est un descripteur de fichier pour la mémoire partagée
     
-    shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666);
+    shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666); // Crée ou ouvre la mémoire partagée avec droits de lecture/écriture
     if (shm_fd == -1) {
+        // On vérifie si l'ouverture a réussi
         perror("shm_open");
         return -1;
     }
     
     if (ftruncate(shm_fd, sizeof(SharedMemory)) == -1) {
+        // On définit la taille de la mémoire partagée, si échec on ferme et quitte
         perror("ftruncate");
         close(shm_fd);
         return -1;
     }
     
-    shared_mem = mmap(NULL, sizeof(SharedMemory), 
-                      PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-    
+    shared_mem = mmap(NULL, sizeof(SharedMemory), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0); // On mappe la mémoire partagée
     if (shared_mem == MAP_FAILED) {
+        // On vérifie si le mapping a réussi
         perror("mmap");
         close(shm_fd);
         return -1;
     }
     
     // Initialisation du mutex partagé entre processus
-    pthread_mutexattr_t attr;
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
-    pthread_mutex_init(&shared_mem->mutex, &attr);
-    pthread_mutexattr_destroy(&attr);
+    pthread_mutexattr_t attr; // Création des attributs du mutex
+    pthread_mutexattr_init(&attr); // Initialisation des attributs du mutex
+    pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED); // On indique que le mutex sera partagé entre processus
+    pthread_mutex_init(&shared_mem->mutex, &attr); // Initialisation du mutex avec les attributs dans la mémoire partagée
+    pthread_mutexattr_destroy(&attr); // Destruction des attributs du mutex 
     
-    // Initialisation des données
-    memset(shared_mem->tickets, 0, sizeof(shared_mem->tickets));
+    // Initialisation des données dans la mémoire partagée
+    memset(shared_mem->tickets, 0, sizeof(shared_mem->tickets)); // Dans la mémoire partagée, on initialise tous les tickets de notre tableau ticket à 0
     shared_mem->ticket_count = 0;
     shared_mem->next_id = 1;
     
     log_event("Serveur de ticketing initialise");
     printf("   Nom de la memoire partagee: %s\n", SHM_NAME);
     printf("   Capacite: %d tickets maximum\n", MAX_TICKETS);
-    printf("   Delai priorite: %d heures\n\n", PRIORITY_DELAY / 3600);
+    printf("   Delai priorite: %d heures\n\n", PRIORITY_DELAY / 3600); // On divise par 3600 pour que notre Priority_delay soit exrimée en heures (24h)
     
     return 0;
 }
 
 void cleanup_server(int sig) {
+    // Nettoyage de la mémoire partagée et des ressources avant de quitter
     printf("\n");
     log_event("Arret du serveur...");
     
     if (shared_mem != MAP_FAILED && shared_mem != NULL) {
-        pthread_mutex_destroy(&shared_mem->mutex);
-        munmap(shared_mem, sizeof(SharedMemory));
+        pthread_mutex_destroy(&shared_mem->mutex); // Destruction du mutex
+        munmap(shared_mem, sizeof(SharedMemory)); // On détache la mémoire partagée de notre espace d'adressage
     }
     
     if (shm_fd != -1) {
-        close(shm_fd);
+        close(shm_fd); // On ferme le descripteur de fichier de la mémoire partagée
     }
     
-    shm_unlink(SHM_NAME);
+    shm_unlink(SHM_NAME); // On supprime la mémoire partagée du système
     log_event("Nettoyage termine");
     exit(0);
 }
@@ -109,6 +119,7 @@ void cleanup_server(int sig) {
 // ============================================================================
 
 int count_active_tickets(void) {
+    // Compte le nombre de tickets actifs
     int count = 0;
     for (int i = 0; i < shared_mem->ticket_count; i++) {
         if (shared_mem->tickets[i].status != TICKET_CLOSED) {
@@ -119,6 +130,7 @@ int count_active_tickets(void) {
 }
 
 int count_technician_tickets(int technician_id) {
+    // Compte le nombre de tickets en cours pour un technicien passé en parametre
     int count = 0;
     for (int i = 0; i < shared_mem->ticket_count; i++) {
         if (shared_mem->tickets[i].technician_id == technician_id &&
