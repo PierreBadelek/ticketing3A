@@ -13,7 +13,7 @@ int client_id;
 // Déclarations des fonctions
 int connect_to_server();
 void process_client_input();
-void create_ticket(const char *titre, const char *description);
+void create_ticket(const char *titre, const char *description, const char *date_str);
 void list_tickets();
 
 int connect_to_server()
@@ -70,6 +70,7 @@ void process_client_input()
         {
             char title[100];
             char description[500];
+            time_t date = time(NULL);
 
             printf("Entrez le titre du ticket: ");
             if (fgets(title, sizeof(title), stdin) == NULL)
@@ -85,9 +86,19 @@ void process_client_input()
                 printf("Erreur de lecture de la description.\n");
                 continue;
             }
+        
             description[strcspn(description, "\n")] = 0;
 
-            create_ticket(title, description);
+            char date_str[20];
+            printf("Entrez la date de l'événement (YYYY-MM-DD): ");
+            if (fgets(date_str, sizeof(date_str), stdin) == NULL)
+            {
+                printf("Erreur de lecture de la date.\n");
+                continue;
+            }
+            date_str[strcspn(date_str, "\n")] = 0;
+
+            create_ticket(title, description, date_str);
         }
         else if (strcmp(command, "exit") == 0)
         {
@@ -102,7 +113,7 @@ void process_client_input()
 }
 
 // Créé un nouveau ticket
-void create_ticket(const char *titre, const char *description)
+void create_ticket(const char *titre, const char *description, const char *date_str)
 {
     // Vérifie si le nombre maximum de tickets est atteint
     pthread_mutex_lock(&shared_mem->mutex);
@@ -127,6 +138,10 @@ void create_ticket(const char *titre, const char *description)
     new_ticket->technician_id = -1;
     new_ticket->is_priority = 0;
     new_ticket->created_at = time(NULL);
+
+    strncpy(new_ticket->date_event, date_str, sizeof(new_ticket->date_event) - 1);
+    new_ticket->date_event[sizeof(new_ticket->date_event) - 1] = '\0';
+
     new_ticket->updated_at = new_ticket->created_at;
     shared_mem->ticket_count++;
 
@@ -148,11 +163,11 @@ void list_tickets()
         if (shared_mem->tickets[i].client_id == client_id)
         {
             Ticket *t = &shared_mem->tickets[i];
-            printf("ID: %d | Titre: %s | Statut: %s\n", t->id, t->title,
+            printf("ID: %d | Titre: %s | Statut: %s | Date de l'événement: %s\n", t->id, t->title,
                    (t->status == TICKET_OPEN)
                        ? "Ouvert"
                    : (t->status == TICKET_IN_PROGRESS) ? "En cours"
-                                                       : "Fermé");
+                                                       : "Fermé", t->date_event);
             found = 1;
         }
     }

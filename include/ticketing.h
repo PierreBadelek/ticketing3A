@@ -22,6 +22,7 @@ typedef struct {
     char description[MAX_DESCRIPTION];
     time_t created_at;
     time_t updated_at;
+    char date_event[20]; // date de l'événement
     TicketStatus status;
     int client_id;
     int technician_id;
