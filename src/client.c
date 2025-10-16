@@ -10,52 +10,106 @@
 #define SHM_NAME "/ticketing_shm"
 
 SharedMemory *shared_mem;
+int client_id;
 
-int connect_to_server() {
+int connect_to_server()
+{
     int shm_fd = shm_open(SHM_NAME, O_RDWR, 0666);
-    if (shm_fd == -1) {
-        perror("Error: Cannot connect to server");
+    if (shm_fd == -1)
+    {
+        perror("Erreur: Impossible de se connecter au serveur");
         return -1;
     }
-    
-    shared_mem = mmap(NULL, sizeof(SharedMemory), 
+
+    shared_mem = mmap(NULL, sizeof(SharedMemory),
                       PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-    
-    if (shared_mem == MAP_FAILED) {
-        perror("Error: Memory mapping failed");
+
+    if (shared_mem == MAP_FAILED)
+    {
+        perror("Erreur: Échec du mapping mémoire");
+        close(shm_fd);
         return -1;
     }
-    
-    printf("Connected to server successfully\n");
+
+    client_id = getpid();
+
+    printf("Connecté au serveur avec Client ID: %d\n", client_id);
     return 0;
 }
 
-void display_menu() {
-
+void display_menu()
+{
 }
 
 // Créé un nouveau ticket
-void create_ticket() {
+void create_ticket()
+{
+    // Vérifie si le nombre maximum de tickets est atteint
+    pthread_mutex_lock(&shared_mem->mutex);
+    if (shared_mem->ticket_count >= MAX_TICKETS)
+    {
+        printf("Erreur: Nombre maximum de tickets atteint\n");
+        pthread_mutex_unlock(&shared_mem->mutex);
+        return;
+    }
+
+    // Création du ticket
+    Ticket *new_ticket = &shared_mem->tickets[shared_mem->ticket_count];
+    new_ticket->id = shared_mem->next_id++;
+    new_ticket->status = TICKET_IN_PROGRESS;
+    new_ticket->client_id = client_id;
+    new_ticket->technician_id = -1;
+    new_ticket->is_priority = 0;
+    new_ticket->created_at = time(NULL);
+    new_ticket->updated_at = new_ticket->created_at;
+    shared_mem->ticket_count++;
+
+    printf("Ticket n°%d créé avec succès\n", new_ticket->id);
+    printf("Un technicien prendra en charge votre demande sous peu.\n");
+    pthread_mutex_unlock(&shared_mem->mutex);
 }
 
 // Liste tous les tickets du client
-void list_tickets() {
-    
+void list_tickets()
+{
+    pthread_mutex_lock(&shared_mem->mutex);
+    int found = 0;
+    printf("Vos tickets:\n");
+    for (int i = 0; i < shared_mem->ticket_count; i++)
+    {
+        if (shared_mem->tickets[i].client_id == client_id)
+        {
+            Ticket *t = &shared_mem->tickets[i];
+            printf("ID: %d | Titre: %s | Statut: %s\n", t->id, t->title,
+                   (t->status == TICKET_OPEN)
+                       ? "Ouvert"
+                   : (t->status == TICKET_IN_PROGRESS) ? "En cours"
+                                                       : "Fermé");
+            found = 1;
+        }
+    }
+    if (!found)
+    {
+        printf("Aucun ticket trouvé.\n");
+    }
+    pthread_mutex_unlock(&shared_mem->mutex);
 }
 
 // Voir les détails d'un ticket
-void view_ticket() {
-    
+void view_ticket()
+{
 }
 
 // Mets à jour le statut d'un ticket
-void update_ticket_status() {
+void update_ticket_status()
+{
 }
 
-int main() {
-    if (connect_to_server() == -1) {
+int main()
+{
+    if (connect_to_server() == -1)
+    {
         printf("Erreur: La connexion au serveur a échouée\n");
         return 1;
     }
-    
 }
