@@ -10,9 +10,13 @@ include_directories(include)
 add_executable(server
         src/server.c
         src/server_functions.c
+)
+
+# Client
+add_executable(client
         src/client.c
-        src/testenvoiticketserveur.c
 )
 
 # Librairies nécessaires
 target_link_libraries(server pthread rt)
+target_link_libraries(client pthread rt)

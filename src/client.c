@@ -143,4 +143,10 @@ int main()
         printf("Erreur: La connexion au serveur a échouée\n");
         return 1;
     }
+
+    process_client_input();
+
+    // Nettoyage
+    munmap(shared_mem, sizeof(SharedMemory));
+    return 0;
 }
