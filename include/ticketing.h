@@ -4,7 +4,8 @@
 #include <pthread.h>
 #include <time.h>
 
-#define MAX_TICKETS 5
+// Limite de 1000 tickets sur le serveur
+#define MAX_TICKETS 1000
 #define MAX_DESCRIPTION 256
 #define MAX_TITLE 100
 #define PRIORITY_DELAY 86400  // 24h en secondes
