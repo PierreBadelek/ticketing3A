@@ -65,9 +65,7 @@ void process_technicien_input()
         printf("  connectTicket -t    : Lister les tickets assignés\n");
         printf("  connectTicket -p    : Assigner les tickets prioritaires jusqu'à la limite du technicien\n");
         }
-        else
-
-        if (strcmp(command, "connectTicket -l") == 0)
+        else if (strcmp(command, "connectTicket -l") == 0)
         {
             list_tickets();
             printf("Entrez une commande (assignTicket <id> | exit): ");
@@ -283,7 +281,7 @@ int main()
         return 1;
     }
 
-    process_client_input();
+    process_technicien_input();
 
     // Nettoyage
     munmap(shared_mem, sizeof(SharedMemory));
