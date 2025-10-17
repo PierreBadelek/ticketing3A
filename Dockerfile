@@ -8,7 +8,7 @@ RUN apt-get update && \
 WORKDIR /app
 COPY . .
 
-RUN rm -rf build && mkdir build
+RUN mkdir build
 
 RUN cmake -B build -DCMAKE_BUILD_TYPE=Release && \
     cmake --build build
