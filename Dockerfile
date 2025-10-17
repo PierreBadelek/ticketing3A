@@ -26,5 +26,6 @@ WORKDIR /app
 # Copy only the compiled binary
 COPY --from=builder /app/build/server .
 COPY --from=builder /app/build/client .
+COPY --from=builder /app/build/technicien .
 
 CMD ["./server"]
