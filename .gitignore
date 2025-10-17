@@ -1,3 +1,5 @@
 build/
 
 .vscode/
+
+server_tickets.json

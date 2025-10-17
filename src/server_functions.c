@@ -93,6 +93,9 @@ int init_shared_memory(void) {
     printf("   Capacite: %d tickets maximum\n", MAX_TICKETS);
     printf("   Delai priorite: %d heures\n\n", PRIORITY_DELAY / 3600); // On divise par 3600 pour que notre Priority_delay soit exrimée en heures (24h)
     
+    // Sauvegarde initiale
+    save_tickets_to_json();
+    
     return 0;
 }
 
@@ -101,7 +104,10 @@ void cleanup_server(int sig) {
     printf("\n");
     log_event("Arret du serveur...");
     
+    // Sauvegarde finale avant l'arrêt
     if (shared_mem != MAP_FAILED && shared_mem != NULL) {
+        log_event("Sauvegarde finale des tickets...");
+        save_tickets_to_json();
         pthread_mutex_destroy(&shared_mem->mutex); // Destruction du mutex
         munmap(shared_mem, sizeof(SharedMemory)); // On détache la mémoire partagée de notre espace d'adressage
     }
@@ -170,6 +176,9 @@ void check_priority_tickets(void) {
         char msg[128];
         snprintf(msg, sizeof(msg), "%d ticket(s) prioritaire(s) en attente", priority_count);
         log_event(msg);
+        
+        // Sauvegarder les modifications
+        save_tickets_to_json();
     }
 }
 
@@ -214,9 +223,14 @@ void cleanup_closed_tickets(void) {
         char msg[128];
         snprintf(msg, sizeof(msg), "Ticket #%d supprime (ferme le plus ancien)", removed_id);
         log_event(msg);
+        
+        pthread_mutex_unlock(&shared_mem->mutex);
+        
+        // Sauvegarder les modifications
+        save_tickets_to_json();
+    } else {
+        pthread_mutex_unlock(&shared_mem->mutex);
     }
-    
-    pthread_mutex_unlock(&shared_mem->mutex);
 }
 
 // ============================================================================
@@ -292,6 +306,54 @@ void display_server_status(void) {
 }
 
 // ============================================================================
+// SAUVEGARDE JSON
+// ============================================================================
+
+void save_tickets_to_json(void) {
+    pthread_mutex_lock(&shared_mem->mutex);
+    
+    FILE *save_file = fopen("server_tickets.json", "w");
+    if (save_file == NULL) {
+        perror("Erreur lors de l'ouverture du fichier de sauvegarde");
+        pthread_mutex_unlock(&shared_mem->mutex);
+        return;
+    }
+    
+    fprintf(save_file, "{\n");
+    fprintf(save_file, "  \"ticket_count\": %d,\n", shared_mem->ticket_count);
+    fprintf(save_file, "  \"next_id\": %d,\n", shared_mem->next_id);
+    fprintf(save_file, "  \"tickets\": [\n");
+    
+    for (int i = 0; i < shared_mem->ticket_count; i++) {
+        Ticket *t = &shared_mem->tickets[i];
+        
+        fprintf(save_file, "    {\n");
+        fprintf(save_file, "      \"id\": %d,\n", t->id);
+        fprintf(save_file, "      \"title\": \"%s\",\n", t->title);
+        fprintf(save_file, "      \"description\": \"%s\",\n", t->description);
+        fprintf(save_file, "      \"status\": \"%s\",\n", status_to_string(t->status));
+        fprintf(save_file, "      \"priority\": \"%s\",\n", priority_to_string(t->is_priority));
+        fprintf(save_file, "      \"client_id\": %d,\n", t->client_id);
+        fprintf(save_file, "      \"technician_id\": %d,\n", t->technician_id);
+        fprintf(save_file, "      \"date_event\": \"%s\",\n", t->date_event);
+        fprintf(save_file, "      \"created_at\": %ld,\n", (long)t->created_at);
+        fprintf(save_file, "      \"updated_at\": %ld\n", (long)t->updated_at);
+        
+        if (i < shared_mem->ticket_count - 1) {
+            fprintf(save_file, "    },\n");
+        } else {
+            fprintf(save_file, "    }\n");
+        }
+    }
+    
+    fprintf(save_file, "  ]\n");
+    fprintf(save_file, "}\n");
+    
+    fclose(save_file);
+    pthread_mutex_unlock(&shared_mem->mutex);
+}
+
+// ============================================================================
 // THREAD DE SURVEILLANCE
 // ============================================================================
 
@@ -309,6 +371,9 @@ void* monitoring_thread(void *arg) {
         
         // Nettoyer les vieux tickets fermés si nécessaire
         cleanup_closed_tickets();
+        
+        // Sauvegarder les tickets dans le fichier JSON
+        save_tickets_to_json();
         
         // Afficher le statut toutes les 5 minutes
         if (cycle % 5 == 0) {
