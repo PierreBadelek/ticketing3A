@@ -11,6 +11,7 @@ SharedMemory *shared_mem;
 int client_id;
 
 // Déclarations des fonctions
+void show_main_menu();
 int connect_to_server();
 void process_client_input();
 void create_ticket(const char *titre, const char *description, const char *date_str);
@@ -44,13 +45,22 @@ int connect_to_server()
     return 0;
 }
 
+void show_main_menu(){
+    printf("\n=== Menu Principal Client ===\n");
+    printf("  sendTicket -l    : Lister vos tickets\n");
+    printf("  sendTicket -new  : Créer un nouveau ticket\n");
+    printf("  quit             : Quitter le client\n");
+}
+
 void process_client_input()
 {
     // lit les commandes du client et les traite
     char command[256];
     while (1)
     {
-        printf("Entrez une commande (sendTicket -l | sendTicket -new | exit): ");
+        show_main_menu();
+        printf("Commande> ");
+
         if (fgets(command, sizeof(command), stdin) == NULL)
         {
             printf("Erreur de lecture de la commande.\n");
@@ -103,7 +113,7 @@ void process_client_input()
 
             create_ticket(title, description, date_str);
         }
-        else if (strcmp(command, "exit") == 0)
+        else if (strcmp(command, "quit") == 0)
         {
             printf("Déconnexion du serveur...\n");
             break;
