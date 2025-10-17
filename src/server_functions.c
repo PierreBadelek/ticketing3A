@@ -190,6 +190,7 @@ void cleanup_closed_tickets(void) {
     time_t oldest_time = 0;
     
     for (int i = 0; i < shared_mem->ticket_count; i++) {
+        // Cherche l'indice du ticket fermé le plus ancien
         if (shared_mem->tickets[i].status == TICKET_CLOSED) {
             if (oldest_closed_index == -1 || 
                 shared_mem->tickets[i].updated_at < oldest_time) {
@@ -208,11 +209,10 @@ void cleanup_closed_tickets(void) {
             shared_mem->tickets[i] = shared_mem->tickets[i + 1];
         }
         
-        shared_mem->ticket_count--;
+        shared_mem->ticket_count--; // On retire un ticket du compte total
         
         char msg[128];
-        snprintf(msg, sizeof(msg), 
-                "Ticket #%d supprime (ferme le plus ancien)", removed_id);
+        snprintf(msg, sizeof(msg), "Ticket #%d supprime (ferme le plus ancien)", removed_id);
         log_event(msg);
     }
     
@@ -224,26 +224,28 @@ void cleanup_closed_tickets(void) {
 // ============================================================================
 
 void display_ticket(Ticket *ticket) {
+    // Affiche les détails d'un ticket
+
     time_t now = time(NULL);
+
     double elapsed = difftime(now, ticket->created_at);
-    
-    printf("  [#%d] [%s] [%s]\n", 
-           ticket->id, 
-           status_to_string(ticket->status),
-           priority_to_string(ticket->is_priority));
-    printf("      Titre: %s\n", ticket->title);
-    printf("      Description: %s\n", ticket->description);
-    printf("      Client ID: %d\n", ticket->client_id);
+
+    printf("  [#%d] [%s] [%s]\n", ticket->id, status_to_string(ticket->status),priority_to_string(ticket->is_priority));
+    printf("      Titre : %s\n", ticket->title);
+    printf("      Description : %s\n", ticket->description);
+    printf("      Client ID : %d\n", ticket->client_id);
     
     if (ticket->technician_id > 0) {
-        printf("      Technicien ID: %d\n", ticket->technician_id);
+        printf("      Technicien ID : %d\n", ticket->technician_id);
     }
     
-    printf("      Cree il y a: %.0f heures\n", elapsed / 3600);
+    printf("      Cree il y a : %.0f heures\n", elapsed / 3600);
     printf("\n");
 }
 
 void display_server_status(void) {
+    // Affiche le statut actuel du serveur et des tickets
+    
     pthread_mutex_lock(&shared_mem->mutex);
     
     printf("\n");
@@ -258,6 +260,7 @@ void display_server_status(void) {
     int open = 0, in_progress = 0, closed = 0, priority = 0;
     
     for (int i = 0; i < shared_mem->ticket_count; i++) {
+        // Ajuste les compteurs selon le statut du ticket
         switch(shared_mem->tickets[i].status) {
             case TICKET_OPEN: open++; break;
             case TICKET_IN_PROGRESS: in_progress++; break;
