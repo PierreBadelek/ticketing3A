@@ -35,6 +35,7 @@ typedef struct {
     int ticket_count;
     int next_id;
     int next_client_id; 
+    int next_technicien_id;
     pthread_mutex_t mutex;
 } SharedMemory;
 

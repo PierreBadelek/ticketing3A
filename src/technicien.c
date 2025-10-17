@@ -45,7 +45,9 @@ int connect_to_server()
         return -1;
     }
 
-    technicien_id = getpid();
+    pthread_mutex_lock(&shared_mem->mutex);
+    technicien_id = shared_mem->next_technicien_id++;
+    pthread_mutex_unlock(&shared_mem->mutex);
 
     printf("Connecté au serveur avec Technicien ID: %d\n", technicien_id);
     

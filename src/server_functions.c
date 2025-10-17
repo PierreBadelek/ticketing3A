@@ -87,6 +87,7 @@ int init_shared_memory(void) {
     shared_mem->ticket_count = 0;
     shared_mem->next_id = 1;
     shared_mem->next_client_id = 1;  // Initialiser le compteur de clients
+    shared_mem->next_technicien_id = 1; // Initialiser le compteur de techniciens
     
     log_event("Serveur de ticketing initialise");
     printf("   Nom de la memoire partagee: %s\n", SHM_NAME);
