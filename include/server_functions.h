@@ -18,8 +18,9 @@ void display_server_status(void);
 void display_ticket(Ticket *ticket);
 void log_event(const char *message);
 
-// Sauvegarde JSON
+// Sauvegarde et chargement JSON
 void save_tickets_to_json(void);
+void load_tickets_from_json(void);
 
 // Thread de surveillance
 void* monitoring_thread(void *arg);

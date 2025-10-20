@@ -94,8 +94,8 @@ int init_shared_memory(void) {
     printf("   Capacite: %d tickets maximum\n", MAX_TICKETS);
     printf("   Delai priorite: %d heures\n\n", PRIORITY_DELAY / 3600); // On divise par 3600 pour que notre Priority_delay soit exrimée en heures (24h)
     
-    // Sauvegarde initiale
-    save_tickets_to_json();
+    // Charger les tickets depuis le fichier JSON s'il existe
+    load_tickets_from_json();
     
     return 0;
 }
@@ -307,7 +307,7 @@ void display_server_status(void) {
 }
 
 // ============================================================================
-// SAUVEGARDE JSON
+// SAUVEGARDE ET CHARGEMENT JSON
 // ============================================================================
 
 void save_tickets_to_json(void) {
@@ -352,6 +352,81 @@ void save_tickets_to_json(void) {
     
     fclose(save_file);
     pthread_mutex_unlock(&shared_mem->mutex);
+}
+
+void load_tickets_from_json(void) {
+    FILE *load_file = fopen("server_tickets.json", "r");
+    if (load_file == NULL) {
+        log_event("Aucun fichier de sauvegarde trouve - demarrage avec memoire vide");
+        return;
+    }
+    
+    pthread_mutex_lock(&shared_mem->mutex);
+    
+    // Lire le ticket_count et next_id
+    int ticket_count = 0, next_id = 1;
+    if (fscanf(load_file, " { \"ticket_count\": %d, \"next_id\": %d, \"tickets\": [", 
+               &ticket_count, &next_id) != 2) {
+        log_event("Erreur de lecture du fichier JSON - format invalide");
+        fclose(load_file);
+        pthread_mutex_unlock(&shared_mem->mutex);
+        return;
+    }
+    
+    shared_mem->ticket_count = 0;
+    shared_mem->next_id = next_id;
+    
+    // Lire chaque ticket du fichier
+    for (int i = 0; i < ticket_count && i < MAX_TICKETS; i++) {
+        Ticket *t = &shared_mem->tickets[i];
+        char status_str[20];
+        char priority_str[20];
+        long created_at, updated_at;
+        
+        // Lire l'accolade ouvrante du ticket
+        fscanf(load_file, " {");
+        
+        // Lire les champs du ticket
+        if (fscanf(load_file, " \"id\": %d, \"title\": \"%99[^\"]\", \"description\": \"%255[^\"]\", \"status\": \"%19[^\"]\", \"priority\": \"%19[^\"]\", \"client_id\": %d, \"technician_id\": %d, \"date_event\": \"%19[^\"]\", \"created_at\": %ld, \"updated_at\": %ld",
+                   &t->id, t->title, t->description, status_str, priority_str,
+                   &t->client_id, &t->technician_id, t->date_event,
+                   &created_at, &updated_at) != 10) {
+            log_event("Erreur de lecture d'un ticket - arret du chargement");
+            break;
+        }
+        
+        // Convertir le statut de chaîne vers enum
+        if (strcmp(status_str, "OUVERT") == 0) {
+            t->status = TICKET_OPEN;
+        } else if (strcmp(status_str, "EN COURS") == 0) {
+            t->status = TICKET_IN_PROGRESS;
+        } else if (strcmp(status_str, "FERME") == 0) {
+            t->status = TICKET_CLOSED;
+        } else {
+            t->status = TICKET_OPEN;
+        }
+        
+        // Convertit la priorité
+        t->is_priority = (strcmp(priority_str, "PRIORITAIRE") == 0) ? 1 : 0;
+        
+        // Convertit les timestamps
+        t->created_at = (time_t)created_at;
+        t->updated_at = (time_t)updated_at;
+        
+        shared_mem->ticket_count++;
+        
+        // Lire l'accolade fermante et la virgule éventuelle
+        fscanf(load_file, " }");
+        char next_char;
+        fscanf(load_file, " %c", &next_char);
+    }
+    
+    fclose(load_file);
+    pthread_mutex_unlock(&shared_mem->mutex);
+    
+    char msg[128];
+    snprintf(msg, sizeof(msg), "Chargement termine: %d tickets restaurés", shared_mem->ticket_count);
+    log_event(msg);
 }
 
 // ============================================================================
